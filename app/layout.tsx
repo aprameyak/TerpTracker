@@ -1,8 +1,26 @@
 import './globals.css'
 
 export const metadata = {
-  title: 'TerpTrack - UMD Schedule Analyzer',
-  description: 'Smart schedule analysis for UMD students',
+  title: 'TerpTrack - Will Your UMD Schedule Kill You? | University of Maryland Course Analyzer',
+  description: 'Analyze your UMD semester schedule with real PlanetTerp data. Get survivability scores, GPA predictions, professor comparisons, and smart warnings for University of Maryland students.',
+  keywords: 'UMD, University of Maryland, schedule analyzer, course planner, PlanetTerp, GPA calculator, professor reviews, Testudo alternative',
+  authors: [{ name: 'TerpTrack Team' }],
+  openGraph: {
+    title: 'TerpTrack - UMD Schedule Survival Analyzer',
+    description: 'Will your semester kill you? Find out with real UMD course data and professor reviews.',
+    url: 'https://terptrack.vercel.app',
+    siteName: 'TerpTrack',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TerpTrack - UMD Schedule Analyzer',
+    description: 'Analyze your UMD schedule with real data from PlanetTerp',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 }
 
 export default function RootLayout({
@@ -12,6 +30,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <link rel="canonical" href="https://terptrack.vercel.app" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "TerpTrack",
+              "description": "UMD schedule analyzer using real PlanetTerp data",
+              "url": "https://terptrack.vercel.app",
+              "applicationCategory": "EducationalApplication",
+              "operatingSystem": "Web",
+              "offers": {
+                "@type": "Offer",
+                "price": "0",
+                "priceCurrency": "USD"
+              }
+            })
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   )

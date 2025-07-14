@@ -1,92 +1,53 @@
-🧠 TerpTrack
+# 🐢 TerpTrack
 
-Your Smart UMD Schedule Analyzer
-📌 Overview
+**Will your UMD schedule kill you?**
 
-TerpTrack is a web application designed to help University of Maryland students evaluate their semester schedules using real data from PlanetTerp and natural language processing (NLP). By integrating course data, professor reviews, and grade distributions, the app delivers actionable insights into workload, difficulty, and compatibility — all through a clean and interactive interface.
-🎯 Purpose
+TerpTrack is a smart schedule analyzer for University of Maryland students that uses real PlanetTerp data to predict your semester survival rate.
 
-Students often struggle to assess how their planned classes will balance out — especially when dealing with unknown professors or course combinations. TerpTrack automates this evaluation by analyzing:
+## 🚀 Features
 
-    Average GPAs for courses and professors
+- **Survivability Score** - Get a 1-10 rating of how brutal your schedule will be
+- **GPA Prediction** - Realistic GPA range based on course difficulty and professor selection
+- **Professor Comparison** - Side-by-side analysis with sentiment analysis of reviews
+- **Smart Warnings** - Detect dangerous course combinations and heavy workloads
+- **Schedule Management** - Save, load, and export your schedules
+- **Real UMD Data** - Powered by PlanetTerp API with live course and professor data
 
-    Sentiment and keyword extraction from student reviews
+## 🎯 Built For Real Students
 
-    Potential risk factors from schedule overlap
+Unlike basic course lookup tools, TerpTrack answers the questions students actually ask:
+- "Will this schedule kill me?"
+- "Which professor should I pick?"
+- "What's my realistic GPA target?"
+- "Is this a good course combo?"
 
-    Custom tags and warnings for high-stress course loads
+## 🛠️ Tech Stack
 
-🧱 Core Features
-Feature	Description
-Schedule Input	Users input their planned courses (course code, section, or professor)
-Data Integration	Fetches data from the Planetterp API
-GPA and Grade Analytics	Displays average GPAs, grade distributions, and pass/fail rates
-Review Sentiment Analysis	Applies NLP to summarize student opinions about professors and courses
-Risk Flags	Identifies heavy workloads, tough combinations, or poorly reviewed classes
-Visual Report	Returns a dynamic report card with insights, tags, and a “survivability” score
-🔌 Technical Stack
-🔹 Backend
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Data**: PlanetTerp API integration
+- **Features**: NLP sentiment analysis, schedule intelligence, local storage
 
-    Framework: FastAPI (or Flask)
+## 🚀 Getting Started
 
-    Data Sources: PlanetTerp API, optional web scraping for extra context
+```bash
+npm install
+npm run dev
+```
 
-    NLP Tools: TextBlob, VADER, spaCy, or transformers for sentiment and keyword extraction
+Visit `http://localhost:3000` and start building your schedule!
 
-    Caching (Optional): Redis or lightweight DB to store recent evaluations
+## 📊 How It Works
 
-🔹 Frontend
+1. **Add Courses** - Enter UMD course codes (CMSC131, MATH140, etc.)
+2. **Choose Professors** - Compare options with GPA data and review sentiment
+3. **Get Analysis** - Receive survivability score, warnings, and recommendations
+4. **Make Smart Decisions** - Optimize your schedule before registration
 
-    Framework: React.js or Next.js
+## 🎓 For UMD Students, By UMD Students
 
-    Styling: Tailwind CSS or Chakra UI
+Built with real Terrapin experiences in mind. No more guessing if your schedule will destroy your GPA.
 
-    Data Visualization: Chart.js, Recharts, or D3 for GPA trends and sentiment graphs
+---
 
-🧠 NLP Capabilities
-
-TerpTrack extracts meaning from unstructured reviews to produce:
-
-    Sentiment scores (positive/neutral/negative)
-
-    Topic tags like “tough grader”, “responsive”, “exam-heavy”
-
-    Difficulty indicators by aggregating student feedback and grade trends
-
-🚀 Development Timeline
-Milestone	Description	Duration
-Phase 1: MVP	Course input, GPA lookup, PlanetTerp API integration	1–2 weeks
-Phase 2	Sentiment analysis engine, difficulty tags, risk scoring	1 week
-Phase 3	Full frontend integration, schedule summary UI, mobile support	1–2 weeks
-Phase 4	Optional: User accounts, saving schedules, crowd-sourced tags	Stretch goal
-💡 Unique Value
-
-    Locally impactful: Tailored for UMD students with relevant campus-specific data
-
-    Technically rich: Combines APIs, web scraping, and NLP
-
-    Shareable & fun: Engaging UI with visual reports and light gamification
-
-⚙️ Deployment & Testing
-
-    Frontend: Vercel or Netlify
-
-    Backend: Render, Railway, or Fly.io
-
-    Testing: PyTest for backend logic, Jest for React components
-
-    Monitoring: Use basic logging + error tracking (e.g., Sentry) for early feedback
-
-🔮 Future Enhancements
-
-    UMD login integration (SSO or Clerk)
-
-    Course combination recommender system
-
-    Peer reviews and crowd-verified difficulty scores
-
-    Browser extension or Testudo integration
-
-✅ Summary
-
-TerpTrack is a focused, technically impressive, and highly usable application that solves a real student pain point. By combining structured academic data with natural language review analysis, the app empowers students to plan smarter and avoid schedule overload — all in a clean, friendly interface.
+*Fear the Turtle, but not your schedule.*
