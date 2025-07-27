@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface Course {
   id: string
@@ -8,7 +8,6 @@ interface Course {
   title: string
   credits: number
   average_gpa: number
-  selectedProfessor?: Professor
   professors: Professor[]
   timeSlots?: string[]
 }
@@ -38,8 +37,6 @@ interface ScheduleAnalysis {
     medium: number
     hard: number
   }
-  timeConflicts: string[]
-  workloadDistribution: { [day: string]: number }
   professorInsights: string[]
 }
 
@@ -49,8 +46,17 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<ScheduleAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [showProfessorPicker, setShowProfessorPicker] = useState<string | null>(null)
   const [savedSchedules, setSavedSchedules] = useState<{name: string, courses: Course[]}[]>([])
+  const [editingSchedule, setEditingSchedule] = useState<number | null>(null)
+  const [editingName, setEditingName] = useState('')
+
+  // Load saved schedules on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('terptrack-schedules')
+    if (saved) {
+      setSavedSchedules(JSON.parse(saved))
+    }
+  }, [])
 
   const addCourse = async () => {
     if (!courseCode || schedule.find(c => c.name === courseCode)) return
@@ -63,7 +69,17 @@ export default function Home() {
       const data = await response.json()
       
       if (!response.ok) {
-        setError(data.error || 'Course not found')
+        // Course not found in API, add it directly
+        const newCourse: Course = {
+          id: Math.random().toString(),
+          name: courseCode,
+          title: `${courseCode} - Course`,
+          credits: 3,
+          average_gpa: 0, // No GPA data available
+          professors: []
+        }
+        setSchedule(prev => [...prev, newCourse])
+        setCourseCode('')
       } else {
         const newCourse: Course = {
           id: Math.random().toString(),
@@ -77,7 +93,17 @@ export default function Home() {
         setCourseCode('')
       }
     } catch (error) {
-      setError('Failed to fetch course data')
+      // Network error or other issue, add course directly
+      const newCourse: Course = {
+        id: Math.random().toString(),
+        name: courseCode,
+        title: `${courseCode} - Course`,
+        credits: 3,
+        average_gpa: 0, // No GPA data available
+        professors: []
+      }
+      setSchedule(prev => [...prev, newCourse])
+      setCourseCode('')
     }
     setLoading(false)
   }
@@ -86,20 +112,15 @@ export default function Home() {
     setSchedule(prev => prev.filter(c => c.id !== courseId))
   }
 
-  const selectProfessor = (courseId: string, professor: Professor) => {
-    setSchedule(prev => prev.map(course => 
-      course.id === courseId 
-        ? { ...course, selectedProfessor: professor }
-        : course
-    ))
-    setShowProfessorPicker(null)
-  }
-
   const saveSchedule = () => {
     const name = prompt('Name your schedule:')
     if (name && schedule.length > 0) {
-      setSavedSchedules(prev => [...prev, { name, courses: [...schedule] }])
-      localStorage.setItem('terptrack-schedules', JSON.stringify([...savedSchedules, { name, courses: schedule }]))
+      const newSavedSchedule = { name, courses: [...schedule] }
+      setSavedSchedules(prev => {
+        const updated = [...prev, newSavedSchedule]
+        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
+        return updated
+      })
     }
   }
 
@@ -108,13 +129,39 @@ export default function Home() {
     setAnalysis(null)
   }
 
-  // Load saved schedules on mount
-  useState(() => {
-    const saved = localStorage.getItem('terptrack-schedules')
-    if (saved) {
-      setSavedSchedules(JSON.parse(saved))
+  const deleteSchedule = (index: number) => {
+    if (confirm('Are you sure you want to delete this schedule?')) {
+      setSavedSchedules(prev => {
+        const updated = prev.filter((_, i) => i !== index)
+        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
+        return updated
+      })
     }
-  })
+  }
+
+  const startRename = (index: number, currentName: string) => {
+    setEditingSchedule(index)
+    setEditingName(currentName)
+  }
+
+  const saveRename = (index: number) => {
+    if (editingName.trim()) {
+      setSavedSchedules(prev => {
+        const updated = prev.map((schedule, i) => 
+          i === index ? { ...schedule, name: editingName.trim() } : schedule
+        )
+        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
+        return updated
+      })
+    }
+    setEditingSchedule(null)
+    setEditingName('')
+  }
+
+  const cancelRename = () => {
+    setEditingSchedule(null)
+    setEditingName('')
+  }
 
   const analyzeSchedule = async () => {
     if (schedule.length === 0) return
@@ -133,22 +180,15 @@ export default function Home() {
   }
 
   const getDifficultyColor = (gpa: number) => {
+    if (gpa === 0) return 'text-gray-600 bg-gray-50' // No GPA data
     if (gpa >= 3.5) return 'text-green-600 bg-green-50'
     if (gpa >= 3.0) return 'text-yellow-600 bg-yellow-50'
     return 'text-red-600 bg-red-50'
   }
 
-  const getSentimentColor = (sentiment: string) => {
-    switch(sentiment) {
-      case 'positive': return 'text-green-600 bg-green-50'
-      case 'negative': return 'text-red-600 bg-red-50'
-      default: return 'text-gray-600 bg-gray-50'
-    }
-  }
-
   const exportSchedule = () => {
     const scheduleText = schedule.map(course => 
-      `${course.name} - ${course.title} (${course.credits} credits)${course.selectedProfessor ? ` - Prof. ${course.selectedProfessor.name}` : ''}`
+      `${course.name} - ${course.title} (${course.credits} credits)`
     ).join('\n')
     
     const blob = new Blob([`TerpTrack Schedule\n\n${scheduleText}\n\nTotal Credits: ${schedule.reduce((sum, c) => sum + c.credits, 0)}`], 
@@ -179,15 +219,60 @@ export default function Home() {
         {savedSchedules.length > 0 && (
           <div className="glass-effect rounded-xl shadow-lg p-6 mb-4">
             <h2 className="text-lg font-semibold mb-3">Saved Schedules</h2>
-            <div className="flex gap-2 flex-wrap">
+            <div className="space-y-2">
               {savedSchedules.map((saved, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => loadSchedule(saved)}
-                  className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm"
-                >
-                  {saved.name} ({saved.courses.length} courses)
-                </button>
+                <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  {editingSchedule === idx ? (
+                    <div className="flex items-center gap-2 flex-1">
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && saveRename(idx)}
+                        className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        autoFocus
+                      />
+                      <button
+                        onClick={() => saveRename(idx)}
+                        className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelRename}
+                        className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => loadSchedule(saved)}
+                        className="flex-1 text-left hover:bg-gray-100 p-2 rounded"
+                      >
+                        <span className="font-medium">{saved.name}</span>
+                        <span className="text-gray-500 ml-2">({saved.courses.length} courses)</span>
+                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => startRename(idx, saved.name)}
+                          className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+                          title="Rename"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteSchedule(idx)}
+                          className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
+                          title="Delete"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -216,7 +301,7 @@ export default function Home() {
           {schedule.length > 0 && (
             <div className="space-y-2">
               <div className="flex justify-between items-center mb-3">
-                <h3 className="font-medium text-gray-700">Spring 2024 Schedule</h3>
+                <h3 className="font-medium text-gray-700">Current Schedule</h3>
                 <span className="text-sm bg-gray-100 px-2 py-1 rounded">
                   {schedule.reduce((sum, c) => sum + c.credits, 0)} credits
                 </span>
@@ -228,7 +313,7 @@ export default function Home() {
                       <span className="font-medium">{course.name}</span>
                       <span className="text-gray-600 ml-2">- {course.title}</span>
                       <span className={`ml-2 px-2 py-1 rounded text-sm ${getDifficultyColor(course.average_gpa)}`}>
-                        GPA: {course.average_gpa?.toFixed(2) || 'N/A'}
+                        GPA: {course.average_gpa > 0 ? course.average_gpa.toFixed(2) : 'No GPA data'}
                       </span>
                     </div>
                     <button
@@ -239,23 +324,10 @@ export default function Home() {
                     </button>
                   </div>
                   
-                  {course.selectedProfessor ? (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-green-600">✓ Prof. {course.selectedProfessor.name} (GPA: {course.selectedProfessor.average_gpa?.toFixed(2)})</span>
-                      <button
-                        onClick={() => setShowProfessorPicker(course.id)}
-                        className="text-blue-500 hover:text-blue-700"
-                      >
-                        Change
-                      </button>
+                  {course.professors.length > 0 && (
+                    <div className="text-sm text-gray-600">
+                      {course.professors.length} professor{course.professors.length !== 1 ? 's' : ''} available
                     </div>
-                  ) : course.professors.length > 0 && (
-                    <button
-                      onClick={() => setShowProfessorPicker(course.id)}
-                      className="text-blue-500 hover:text-blue-700 text-sm"
-                    >
-                      Choose Professor ({course.professors.length} available)
-                    </button>
                   )}
                 </div>
               ))}
@@ -296,7 +368,7 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-md p-6">
               <h2 className="text-2xl font-bold mb-4 text-center">Your Schedule Report</h2>
               
-              <div className="grid md:grid-cols-4 gap-4 mb-6">
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
                 <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
                   <h3 className="font-semibold text-purple-800">Survival Rate</h3>
                   <p className="text-3xl font-bold text-purple-600">
@@ -324,48 +396,21 @@ export default function Home() {
                      analysis.totalCredits >= 15 ? 'Standard load' : 'Part-time vibes'}
                   </p>
                 </div>
-                
-                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
-                  <h3 className="font-semibold text-orange-800">Course Mix</h3>
-                  <div className="text-sm text-orange-600">
-                    <div>Easy: {analysis.difficultyBreakdown.easy}</div>
-                    <div>Medium: {analysis.difficultyBreakdown.medium}</div>
-                    <div>Hard: {analysis.difficultyBreakdown.hard}</div>
-                  </div>
-                </div>
               </div>
             </div>
 
-            {/* Warnings & Time Conflicts */}
-            {(analysis.warnings.length > 0 || analysis.timeConflicts?.length > 0) && (
-              <div className="grid md:grid-cols-2 gap-4">
-                {analysis.warnings.length > 0 && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-red-800 mb-3">Red Flags</h3>
-                    <ul className="space-y-2">
-                      {analysis.warnings.map((warning, idx) => (
-                        <li key={idx} className="text-red-700 flex items-start">
-                          <span className="mr-2">•</span>
-                          {warning}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {analysis.timeConflicts && analysis.timeConflicts.length > 0 && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-lg p-6">
-                    <h3 className="text-lg font-semibold text-orange-800 mb-3">Schedule Issues</h3>
-                    <ul className="space-y-2">
-                      {analysis.timeConflicts.map((conflict, idx) => (
-                        <li key={idx} className="text-orange-700 flex items-start">
-                          <span className="mr-2">•</span>
-                          {conflict}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+            {/* Warnings */}
+            {analysis.warnings.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-red-800 mb-3">Red Flags</h3>
+                <ul className="space-y-2">
+                  {analysis.warnings.map((warning, idx) => (
+                    <li key={idx} className="text-red-700 flex items-start">
+                      <span className="mr-2">•</span>
+                      {warning}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
 
@@ -399,28 +444,6 @@ export default function Home() {
                     </ul>
                   </div>
                 )}
-              </div>
-            )}
-            
-            {/* Workload Distribution */}
-            {analysis.workloadDistribution && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h3 className="text-xl font-semibold mb-4">When you'll be crying</h3>
-                <div className="grid grid-cols-5 gap-2">
-                  {Object.entries(analysis.workloadDistribution).map(([day, load]) => (
-                    <div key={day} className="text-center">
-                      <div className="text-sm font-medium text-gray-600 mb-1">{day.slice(0,3)}</div>
-                      <div className={`h-16 rounded flex items-end justify-center text-white font-bold ${
-                        load >= 4 ? 'bg-red-500' : load >= 3 ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}>
-                        <div className="mb-2">{load}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600 mt-2 text-center">
-                  Green = chill, Yellow = busy, Red = no sleep
-                </p>
               </div>
             )}
           </div>

@@ -2,12 +2,12 @@ import './globals.css'
 
 export const metadata = {
   title: 'TerpTrack - Will Your UMD Schedule Kill You? | University of Maryland Course Analyzer',
-  description: 'Analyze your UMD semester schedule with real PlanetTerp data. Get survivability scores, GPA predictions, professor comparisons, and smart warnings for University of Maryland students.',
-  keywords: 'UMD, University of Maryland, schedule analyzer, course planner, PlanetTerp, GPA calculator, professor reviews, Testudo alternative',
+  description: 'Analyze your UMD schedule with real PlanetTerp data. Get survivability scores, GPA predictions, and smart warnings for University of Maryland students.',
+  keywords: 'UMD, University of Maryland, schedule analyzer, course planner, PlanetTerp, GPA calculator, Testudo alternative',
   authors: [{ name: 'TerpTrack Team' }],
   openGraph: {
     title: 'TerpTrack - UMD Schedule Survival Analyzer',
-    description: 'Will your semester kill you? Find out with real UMD course data and professor reviews.',
+    description: 'Will your schedule kill you? Find out with real UMD course data.',
     url: 'https://terptrack.vercel.app',
     siteName: 'TerpTrack',
     type: 'website',

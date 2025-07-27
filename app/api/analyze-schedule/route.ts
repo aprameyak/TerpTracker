@@ -6,7 +6,6 @@ interface Course {
   credits: number
   average_gpa: number
   professors: any[]
-  selectedProfessor?: any
 }
 
 // Simple NLP sentiment analysis
@@ -56,12 +55,16 @@ export async function POST(request: NextRequest) {
 
     // Calculate metrics
     const totalCredits = courses.reduce((sum, course) => sum + course.credits, 0)
-    const avgGPA = courses.reduce((sum, course) => sum + (course.average_gpa || 0), 0) / courses.length
+    const coursesWithGPA = courses.filter(course => course.average_gpa > 0)
+    const avgGPA = coursesWithGPA.length > 0 
+      ? coursesWithGPA.reduce((sum, course) => sum + (course.average_gpa || 0), 0) / coursesWithGPA.length
+      : 0
     
     // Difficulty breakdown
     const difficultyBreakdown = courses.reduce((acc, course) => {
       const gpa = course.average_gpa || 0
-      if (gpa >= 3.5) acc.easy++
+      if (gpa === 0) acc.medium++ // Treat courses without GPA data as medium difficulty
+      else if (gpa >= 3.5) acc.easy++
       else if (gpa >= 3.0) acc.medium++
       else acc.hard++
       return acc
@@ -69,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     // Generate warnings
     const warnings: string[] = []
-    const timeConflicts: string[] = []
     const professorInsights: string[] = []
     
     if (difficultyBreakdown.hard >= 3) {
@@ -78,41 +80,14 @@ export async function POST(request: NextRequest) {
     if (totalCredits >= 18) {
       warnings.push('18+ credits? Hope you like coffee and all-nighters')
     }
-    if (avgGPA < 2.8) {
+    if (avgGPA > 0 && avgGPA < 2.8) {
       warnings.push('These courses have brutal averages. Consider adding an easy A')
     }
     
-    // Check for professor-specific issues
-    const selectedProfs = courses.filter(c => c.selectedProfessor).map(c => c.selectedProfessor)
-    const toughGraders = selectedProfs.filter(p => p.tags?.includes('tough grader')).length
-    if (toughGraders >= 2) {
-      warnings.push('Multiple tough graders = your GPA is in danger')
-    }
-    
-    // Workload distribution (realistic UMD patterns)
-    const workloadDistribution = {
-      'Monday': Math.floor(Math.random() * 3) + 2,
-      'Tuesday': Math.floor(Math.random() * 4) + 2,
-      'Wednesday': Math.floor(Math.random() * 3) + 1,
-      'Thursday': Math.floor(Math.random() * 4) + 2,
-      'Friday': Math.floor(Math.random() * 2) + 1
-    }
-    
-    // Check for heavy days
-    Object.entries(workloadDistribution).forEach(([day, load]) => {
-      if (load >= 4) {
-        timeConflicts.push(`${day}s are gonna suck - ${load} things scheduled`)
-      }
-    })
-    
-    // Professor insights
-    if (selectedProfs.length > 0) {
-      const avgProfGPA = selectedProfs.reduce((sum, p) => sum + (p.average_gpa || 0), 0) / selectedProfs.length
-      if (avgProfGPA >= 3.5) {
-        professorInsights.push('Solid prof picks - you chose the good ones')
-      } else if (avgProfGPA < 3.0) {
-        professorInsights.push('Some of these profs are rough. Check RateMyProfessor too')
-      }
+    // Warn about courses without GPA data
+    const coursesWithoutGPA = courses.filter(c => c.average_gpa === 0).length
+    if (coursesWithoutGPA > 0) {
+      warnings.push(`${coursesWithoutGPA} course${coursesWithoutGPA !== 1 ? 's' : ''} without GPA data - analysis may be less accurate`)
     }
     
     // Check for specific course combinations
@@ -140,7 +115,7 @@ export async function POST(request: NextRequest) {
       recommendations.push('Add an easy elective to balance this out')
     }
     if (totalCredits < 12) {
-      recommendations.push('Only ${totalCredits} credits? Add more if you need to graduate on time')
+      recommendations.push(`Only ${totalCredits} credits? Add more if you need to graduate on time`)
     }
     if (avgGPA >= 3.5) {
       recommendations.push('This schedule looks pretty manageable. Nice job!')
@@ -150,14 +125,21 @@ export async function POST(request: NextRequest) {
     let survivabilityScore = 10
     survivabilityScore -= difficultyBreakdown.hard * 1.5
     survivabilityScore -= Math.max(0, totalCredits - 15) * 0.5
-    survivabilityScore -= Math.max(0, 3.5 - avgGPA) * 2
+    if (avgGPA > 0) {
+      survivabilityScore -= Math.max(0, 3.5 - avgGPA) * 2
+    } else {
+      survivabilityScore -= 1 // Penalty for no GPA data
+    }
     survivabilityScore = Math.max(1, Math.min(10, Math.round(survivabilityScore)))
 
     // Predict GPA range
     const gpaVariance = 0.3
-    const predictedGPA = {
+    const predictedGPA = avgGPA > 0 ? {
       min: Math.max(0, avgGPA - gpaVariance),
       max: Math.min(4.0, avgGPA + gpaVariance)
+    } : {
+      min: 0,
+      max: 4.0
     }
 
     return NextResponse.json({
@@ -167,8 +149,6 @@ export async function POST(request: NextRequest) {
       warnings,
       recommendations,
       difficultyBreakdown,
-      timeConflicts,
-      workloadDistribution,
       professorInsights
     })
 
