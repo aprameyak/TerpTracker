@@ -19,32 +19,9 @@ Unlike basic course lookup tools, TerpTrack answers the questions students actua
 - "What's my realistic GPA target?"
 - "Is this a good course combo?"
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS
 - **Backend**: Next.js API Routes
 - **Data**: PlanetTerp API integration
 - **Features**: Schedule intelligence, local storage
-
-## 🚀 Getting Started
-
-```bash
-npm install
-npm run dev
-```
-
-Visit `http://localhost:3000` and start building your schedule!
-
-## 📊 How It Works
-
-1. **Add Courses** - Enter UMD course codes (CMSC131, MATH140, etc.)
-2. **Get Analysis** - Receive survivability score, warnings, and recommendations
-3. **Make Smart Decisions** - Optimize your schedule before registration
-
-## 🎓 For UMD Students, By UMD Students
-
-Built with real Terrapin experiences in mind. No more guessing if your schedule will destroy your GPA.
-
----
-
-*Fear the Turtle, but not your schedule.*
