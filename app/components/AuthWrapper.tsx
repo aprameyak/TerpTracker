@@ -53,6 +53,8 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   if (!isSignedIn) {
+    const [showSignUp, setShowSignUp] = useState(false)
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-4">
         <div className="max-w-md mx-auto mt-20">
@@ -62,11 +64,33 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           </div>
           
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <SignIn routing="hash" />
-            <div className="mt-4 text-center">
-              <p className="text-sm text-gray-500">Don't have an account?</p>
-              <SignUp routing="hash" />
-            </div>
+            {showSignUp ? (
+              <>
+                <SignUp routing="hash" />
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-500">Already have an account?</p>
+                  <button
+                    onClick={() => setShowSignUp(false)}
+                    className="text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <SignIn routing="hash" />
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-500">Don't have an account?</p>
+                  <button
+                    onClick={() => setShowSignUp(true)}
+                    className="text-red-600 hover:text-red-700 font-medium"
+                  >
+                    Create Account
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
