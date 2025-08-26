@@ -59,6 +59,23 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-4">
         <div className="max-w-md mx-auto mt-20">
           <div className="text-center mb-8">
+            <div className="flex justify-center mb-4">
+              <svg width="64" height="64" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-16 h-16">
+                <circle cx="16" cy="16" r="15" fill="#DC2626" stroke="#B91C1C" stroke-width="2"/>
+                <ellipse cx="16" cy="18" rx="8" ry="6" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+                <path d="M12 16 Q16 14 20 16 Q16 18 12 16" fill="#F59E0B" opacity="0.6"/>
+                <path d="M12 18 Q16 16 20 18 Q16 20 12 18" fill="#F59E0B" opacity="0.4"/>
+                <ellipse cx="16" cy="12" rx="3" ry="2" fill="#FEF3C7" stroke="#F59E0B" stroke-width="1"/>
+                <circle cx="14.5" cy="11.5" r="0.5" fill="#1F2937"/>
+                <circle cx="17.5" cy="11.5" r="0.5" fill="#1F2937"/>
+                <rect x="8" y="6" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+                <rect x="12" y="6" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+                <rect x="16" y="6" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+                <rect x="20" y="6" width="3" height="3" rx="0.5" fill="#FFFFFF" opacity="0.9"/>
+                <line x1="10" y1="8" x2="14" y2="10" stroke="#FFFFFF" stroke-width="1" opacity="0.7"/>
+                <line x1="22" y1="8" x2="18" y2="10" stroke="#FFFFFF" stroke-width="1" opacity="0.7"/>
+              </svg>
+            </div>
             <h1 className="text-4xl font-bold text-red-600 mb-2">TerpTracker</h1>
             <p className="text-gray-600">Connect with your UMD classmates</p>
           </div>
