@@ -62,10 +62,10 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
           </div>
           
           <div className="bg-white rounded-lg shadow-lg p-6">
-            <SignIn />
+            <SignIn routing="hash" />
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">Don't have an account?</p>
-              <SignUp />
+              <SignUp routing="hash" />
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
                 </div>
               </div>
               <div className="p-4">
-                <UserProfile />
+                <UserProfile routing="hash" />
               </div>
             </div>
           </div>

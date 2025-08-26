@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import AuthWrapper from './components/AuthWrapper'
 import ClassmateFinder from './components/ClassmateFinder'
+import ErrorBoundary from './components/ErrorBoundary'
+import LoadingSpinner from './components/LoadingSpinner'
 
 interface Course {
   id: string
@@ -72,46 +74,41 @@ export default function Home() {
     
     try {
       const response = await fetch(`/api/course/${courseCode}`)
-      const data = await response.json()
       
       if (!response.ok) {
-        // Course not found in API, add it directly
-        const newCourse: Course = {
-          id: Math.random().toString(),
-          name: courseCode,
-          title: `${courseCode} - Course`,
-          credits: 3,
-          average_gpa: 0, // No GPA data available
-          professors: []
-        }
-        setSchedule(prev => [...prev, newCourse])
-        setCourseCode('')
-      } else {
-        const newCourse: Course = {
-          id: Math.random().toString(),
-          name: data.name,
-          title: data.title,
-          credits: data.credits || 3,
-          average_gpa: data.average_gpa,
-          professors: data.professors || []
-        }
-        setSchedule(prev => [...prev, newCourse])
-        setCourseCode('')
+        throw new Error(`Failed to fetch course: ${response.status}`)
       }
+      
+      const data = await response.json()
+      
+      const newCourse: Course = {
+        id: Math.random().toString(),
+        name: data.name,
+        title: data.title,
+        credits: data.credits || 3,
+        average_gpa: data.average_gpa,
+        professors: data.professors || []
+      }
+      setSchedule(prev => [...prev, newCourse])
+      setCourseCode('')
     } catch (error) {
-      // Network error or other issue, add course directly
+      console.error('Error adding course:', error)
+      setError('Failed to add course. Please try again.')
+      
+      // Fallback: add course with basic info
       const newCourse: Course = {
         id: Math.random().toString(),
         name: courseCode,
         title: `${courseCode} - Course`,
         credits: 3,
-        average_gpa: 0, // No GPA data available
+        average_gpa: 0,
         professors: []
       }
       setSchedule(prev => [...prev, newCourse])
       setCourseCode('')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   const updateCourseSection = (courseId: string, value: string) => {
@@ -195,16 +192,27 @@ export default function Home() {
   const analyzeSchedule = async () => {
     if (schedule.length === 0) return
     
+    setLoading(true)
+    setError('')
+    
     try {
       const response = await fetch('/api/analyze-schedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courses: schedule })
       })
+      
+      if (!response.ok) {
+        throw new Error(`Failed to analyze schedule: ${response.status}`)
+      }
+      
       const data = await response.json()
       setAnalysis(data)
     } catch (error) {
-      setError('Failed to analyze schedule')
+      console.error('Error analyzing schedule:', error)
+      setError('Failed to analyze schedule. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -230,8 +238,9 @@ export default function Home() {
   }
 
   return (
-    <AuthWrapper>
-      <div className="min-h-screen p-4 md:p-8">
+    <ErrorBoundary>
+      <AuthWrapper>
+        <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-red-600 mb-2">
@@ -356,7 +365,7 @@ export default function Home() {
                     disabled={loading}
                     className="px-6 py-3 umd-red text-white rounded-lg disabled:opacity-50 font-medium transition-all"
                   >
-                    {loading ? 'Adding...' : '+ Add'}
+                    {loading ? <LoadingSpinner size="sm" text="" /> : '+ Add'}
                   </button>
                 </div>
                 
@@ -408,9 +417,10 @@ export default function Home() {
                     <div className="flex gap-2 mt-4">
                       <button
                         onClick={analyzeSchedule}
-                        className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
+                        disabled={loading}
+                        className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
                       >
-                        Check if I'll survive
+                        {loading ? <LoadingSpinner size="sm" text="" /> : 'Check if I\'ll survive'}
                       </button>
                       <button
                         onClick={saveSchedule}
@@ -530,6 +540,7 @@ export default function Home() {
           )}
         </div>
       </div>
-    </AuthWrapper>
-  )
-}
+        </AuthWrapper>
+      </ErrorBoundary>
+    )
+  }

@@ -1,6 +1,6 @@
-// Temporarily disabled for build
+// Production-ready middleware without Clerk for now
 export function middleware() {
-  // Middleware will be re-enabled after Clerk setup
+  // Basic middleware - can be enhanced with Clerk later
 }
 
 export const config = {

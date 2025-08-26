@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
+import LoadingSpinner from './LoadingSpinner'
 
 interface Course {
   id: string
@@ -168,7 +169,7 @@ export default function ClassmateFinder() {
             disabled={loading}
             className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50"
           >
-            {loading ? 'Finding classmates...' : 'Find Classmates'}
+            {loading ? <LoadingSpinner size="sm" text="Finding classmates..." /> : 'Find Classmates'}
           </button>
 
           {classmates.length > 0 && (
