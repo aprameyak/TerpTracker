@@ -1,19 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useUser } from '@clerk/nextjs'
 import AuthWrapper from './components/AuthWrapper'
 import ClassmateFinder from './components/ClassmateFinder'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoadingSpinner from './components/LoadingSpinner'
-
-// Try to import Clerk components, but provide fallbacks if they fail
-let useUser: any = null
-try {
-  const clerk = require('@clerk/nextjs')
-  useUser = clerk.useUser
-} catch (error) {
-  console.warn('Clerk not available, using fallback mode')
-}
 
 interface Course {
   id: string
@@ -55,20 +47,8 @@ interface ScheduleAnalysis {
 }
 
 export default function Home() {
-  const [user, setUser] = useState<any>(null)
+  const { user } = useUser()
   const [courseCode, setCourseCode] = useState('')
-  
-  // Only call useUser on the client side
-  useEffect(() => {
-    if (useUser) {
-      try {
-        const { user: clerkUser } = useUser()
-        setUser(clerkUser)
-      } catch (error) {
-        console.warn('Clerk not available:', error)
-      }
-    }
-  }, [])
   const [schedule, setSchedule] = useState<Course[]>([])
   const [analysis, setAnalysis] = useState<ScheduleAnalysis | null>(null)
   const [loading, setLoading] = useState(false)
