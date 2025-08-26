@@ -18,6 +18,7 @@ Unlike basic course lookup tools, TerpTrack answers the questions students actua
 - "Will this schedule kill me?"
 - "What's my realistic GPA target?"
 - "Is this a good course combo?"
+- social tools coming soon
 
 ## Tech Stack
 
@@ -25,3 +26,4 @@ Unlike basic course lookup tools, TerpTrack answers the questions students actua
 - **Backend**: Next.js API Routes
 - **Data**: PlanetTerp API integration
 - **Features**: Schedule intelligence, local storage
+  
