@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
 import LoadingSpinner from './LoadingSpinner'
+import ClientOnly from './ClientOnly'
 
 interface Course {
   id: string
@@ -10,7 +11,23 @@ interface Course {
   title: string
   credits: number
   average_gpa: number
+  professors: Professor[]
+  timeSlots?: string[]
   section?: string
+}
+
+interface Professor {
+  name: string
+  average_gpa: number
+  reviews: Review[]
+  sentiment: 'positive' | 'neutral' | 'negative'
+  tags: string[]
+  type: string
+}
+
+interface Review {
+  review: string
+  rating: number
 }
 
 interface Classmate {
@@ -26,14 +43,14 @@ interface UserData {
   instagramHandle?: string
   sharedSchedules: boolean
   displayName?: string
-  schedules: Array<{
+  schedules?: Array<{
     id: string
     name: string
     courses: Course[]
   }>
 }
 
-export default function ClassmateFinder() {
+function ClassmateFinderContent() {
   const { user } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [classmates, setClassmates] = useState<Classmate[]>([])
@@ -76,7 +93,7 @@ export default function ClassmateFinder() {
         }
       })
 
-      const currentSchedule = userData.schedules.find(s => s.id === selectedSchedule)
+      const currentSchedule = userData.schedules?.find(s => s.id === selectedSchedule)
       if (!currentSchedule) return
 
       const foundClassmates: Classmate[] = []
@@ -131,111 +148,114 @@ export default function ClassmateFinder() {
     )
   }
 
-  if (!userData?.sharedSchedules) {
+  if (!userData?.schedules || userData.schedules.length === 0) {
     return (
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-blue-800">
-          Enable schedule sharing in your profile to find classmates.
+          You need to save at least one schedule to find classmates. Go to the Schedule Builder tab to create and save a schedule.
         </p>
       </div>
     )
   }
 
   return (
-    <div className="glass-effect rounded-xl shadow-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Find Your Classmates</h2>
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-4">Find Your Classmates</h2>
       
-      {userData.schedules && userData.schedules.length > 0 ? (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Schedule to Search
-            </label>
-            <select
-              value={selectedSchedule}
-              onChange={(e) => setSelectedSchedule(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
-            >
-              {userData.schedules.map(schedule => (
-                <option key={schedule.id} value={schedule.id}>
-                  {schedule.name} ({schedule.courses.length} courses)
-                </option>
-              ))}
-            </select>
-          </div>
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select a schedule to find classmates:
+        </label>
+        <select
+          value={selectedSchedule}
+          onChange={(e) => setSelectedSchedule(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+        >
+          {userData.schedules.map((schedule) => (
+            <option key={schedule.id} value={schedule.id}>
+              {schedule.name} ({schedule.courses.length} courses)
+            </option>
+          ))}
+        </select>
+      </div>
 
-          <button
-            onClick={findClassmates}
-            disabled={loading}
-            className="w-full bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 disabled:opacity-50"
-          >
-            {loading ? <LoadingSpinner size="sm" text="Finding classmates..." /> : 'Find Classmates'}
-          </button>
+      <button
+        onClick={findClassmates}
+        disabled={loading}
+        className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+      >
+        {loading ? <LoadingSpinner /> : 'Find Classmates'}
+      </button>
 
-          {classmates.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-lg font-medium mb-3">
-                Found {classmates.length} classmate{classmates.length !== 1 ? 's' : ''}
-              </h3>
-              
-              <div className="space-y-3">
-                {classmates.map((classmate, index) => (
-                  <div key={index} className="bg-white rounded-lg border p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{classmate.displayName}</h4>
-                      <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
-                        {classmate.overlapPercentage.toFixed(0)}% overlap
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-gray-600">Instagram:</span>
-                        <span className="font-medium">{classmate.instagramHandle}</span>
+      {classmates.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+            Found {classmates.length} classmate{classmates.length !== 1 ? 's' : ''}:
+          </h3>
+          <div className="space-y-4">
+            {classmates.map((classmate) => (
+              <div key={classmate.userId} className="border rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="font-semibold text-gray-800">{classmate.displayName}</h4>
+                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {classmate.overlapPercentage.toFixed(0)}% overlap
+                  </span>
+                </div>
+                
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600 mb-2">Shared courses:</p>
+                  <div className="space-y-1">
+                    {classmate.sharedCourses.map((course) => (
+                      <div key={course.id} className="text-sm bg-gray-50 px-2 py-1 rounded">
+                        {course.name} - {course.title}
+                        {course.section && <span className="text-gray-500 ml-2">(Section {course.section})</span>}
                       </div>
-                      <button
-                        onClick={() => copyInstagramHandle(classmate.instagramHandle)}
-                        className="text-blue-600 hover:text-blue-800 text-sm"
-                      >
-                        Copy
-                      </button>
-                    </div>
-                    
-                    <div className="mt-2">
-                      <p className="text-sm text-gray-600 mb-1">Shared sections:</p>
-                      <div className="space-y-1">
-                        {classmate.sharedCourses.map(course => (
-                          <div
-                            key={course.id}
-                            className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
-                          >
-                            <div className="font-medium">{course.name} - Section {course.section}</div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
+                </div>
 
-          {classmates.length === 0 && !loading && (
-            <div className="text-center py-8 text-gray-500">
-              <p>No classmates found with the same course sections.</p>
-              <p className="text-sm mt-1">Make sure to add course section numbers (e.g., 0101, 0201) to find exact classmates!</p>
-              <p className="text-xs mt-2 text-gray-400">
-                💡 You'll only see classmates who are in the exact same sections as you
-              </p>
-            </div>
-          )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    Instagram: {classmate.instagramHandle}
+                  </span>
+                  <button
+                    onClick={() => copyInstagramHandle(classmate.instagramHandle)}
+                    className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+                  >
+                    Copy Handle
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-8 text-gray-500">
-          <p>No schedules found.</p>
-          <p className="text-sm mt-1">Create and save a schedule first!</p>
+      )}
+
+      {classmates.length === 0 && !loading && (
+        <div className="text-center text-gray-500 py-8">
+          <p>No classmates found with the selected schedule.</p>
+          <p className="text-sm mt-2">
+            Make sure your schedule has section numbers and other students have shared their schedules.
+          </p>
         </div>
       )}
     </div>
+  )
+}
+
+export default function ClassmateFinder() {
+  return (
+    <ClientOnly fallback={
+      <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded mb-4"></div>
+          <div className="h-4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded mb-6"></div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    }>
+      <ClassmateFinderContent />
+    </ClientOnly>
   )
 }

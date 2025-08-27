@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useUser, SignIn, SignUp, UserProfile } from '@clerk/nextjs'
+import ClientOnly from './ClientOnly'
 
 interface UserData {
   universityVerified: boolean
@@ -15,7 +16,7 @@ interface UserData {
   }>
 }
 
-export default function AuthWrapper({ children }: { children: React.ReactNode }) {
+function AuthWrapperContent({ children }: { children: React.ReactNode }) {
   const { user, isLoaded, isSignedIn } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [showProfile, setShowProfile] = useState(false)
@@ -196,4 +197,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   return <>{children}</>
+}
+
+export default function AuthWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ClientOnly fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+      </div>
+    }>
+      <AuthWrapperContent>{children}</AuthWrapperContent>
+    </ClientOnly>
+  )
 }

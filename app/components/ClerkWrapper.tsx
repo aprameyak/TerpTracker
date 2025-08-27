@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useEffect } from 'react'
+import { ReactNode } from 'react'
 import { ClerkProvider } from '@clerk/nextjs'
 import NoAuthFallback from './NoAuthFallback'
 
@@ -10,14 +10,6 @@ interface ClerkWrapperProps {
 }
 
 export default function ClerkWrapper({ children, publishableKey }: ClerkWrapperProps) {
-  useEffect(() => {
-    console.log('ClerkWrapper: publishableKey available:', !!publishableKey)
-    console.log('ClerkWrapper: publishableKey length:', publishableKey?.length)
-    if (publishableKey) {
-      console.log('ClerkWrapper: Key starts with:', publishableKey.substring(0, 20) + '...')
-    }
-  }, [publishableKey])
-
   // If no publishable key is provided, render children without Clerk
   if (!publishableKey) {
     console.warn('No Clerk publishable key provided, rendering without authentication')

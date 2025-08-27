@@ -6,6 +6,7 @@ import AuthWrapper from './components/AuthWrapper'
 import ClassmateFinder from './components/ClassmateFinder'
 import ErrorBoundary from './components/ErrorBoundary'
 import LoadingSpinner from './components/LoadingSpinner'
+import ClientOnly from './components/ClientOnly'
 
 interface Course {
   id: string
@@ -46,7 +47,7 @@ interface ScheduleAnalysis {
   professorInsights: string[]
 }
 
-export default function Home() {
+function HomeContent() {
   const { user } = useUser()
   const [courseCode, setCourseCode] = useState('')
   const [schedule, setSchedule] = useState<Course[]>([])
@@ -99,9 +100,9 @@ export default function Home() {
       const newCourse: Course = {
         id: Math.random().toString(),
         name: courseCode,
-        title: `${courseCode} - Course`,
+        title: `Course ${courseCode}`,
         credits: 3,
-        average_gpa: 0,
+        average_gpa: 3.0,
         professors: []
       }
       setSchedule(prev => [...prev, newCourse])
@@ -122,88 +123,63 @@ export default function Home() {
   }
 
   const saveSchedule = () => {
-    const name = prompt('Name your schedule:')
-    if (name && schedule.length > 0) {
-      const newSavedSchedule = { name, courses: [...schedule] }
-      setSavedSchedules(prev => {
-        const updated = [...prev, newSavedSchedule]
-        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
-        
-        // Also save to user-specific storage for classmate finder
-        if (user) {
-          const userData = localStorage.getItem(`user-data-${user.id}`)
-          const parsedData = userData ? JSON.parse(userData) : {}
-          const userSchedules = parsedData.schedules || []
-          userSchedules.push({
-            id: Math.random().toString(),
-            name,
-            courses: [...schedule]
-          })
-          localStorage.setItem(`user-data-${user.id}`, JSON.stringify({
-            ...parsedData,
-            schedules: userSchedules
-          }))
-        }
-        
-        return updated
-      })
-    }
+    if (schedule.length === 0) return
+    
+    const name = prompt('Enter a name for this schedule:')
+    if (!name) return
+    
+    const newSchedule = { name, courses: [...schedule] }
+    setSavedSchedules(prev => [...prev, newSchedule])
+    
+    // Save to localStorage
+    const allSchedules = [...savedSchedules, newSchedule]
+    localStorage.setItem('terptrack-schedules', JSON.stringify(allSchedules))
+    
+    // Clear current schedule
+    setSchedule([])
   }
 
-  const loadSchedule = (savedSchedule: {name: string, courses: Course[]}) => {
-    setSchedule(savedSchedule.courses)
-    setAnalysis(null)
+  const loadSchedule = (index: number) => {
+    setSchedule([...savedSchedules[index].courses])
   }
 
   const deleteSchedule = (index: number) => {
-    if (confirm('Are you sure you want to delete this schedule?')) {
-      setSavedSchedules(prev => {
-        const updated = prev.filter((_, i) => i !== index)
-        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
-        return updated
-      })
-    }
+    const newSchedules = savedSchedules.filter((_, i) => i !== index)
+    setSavedSchedules(newSchedules)
+    localStorage.setItem('terptrack-schedules', JSON.stringify(newSchedules))
   }
 
-  const startRename = (index: number, currentName: string) => {
+  const editScheduleName = (index: number) => {
     setEditingSchedule(index)
-    setEditingName(currentName)
+    setEditingName(savedSchedules[index].name)
   }
 
-  const saveRename = (index: number) => {
-    if (editingName.trim()) {
-      setSavedSchedules(prev => {
-        const updated = prev.map((schedule, i) => 
-          i === index ? { ...schedule, name: editingName.trim() } : schedule
-        )
-        localStorage.setItem('terptrack-schedules', JSON.stringify(updated))
-        return updated
-      })
-    }
+  const saveScheduleName = () => {
+    if (editingSchedule === null) return
+    
+    const newSchedules = [...savedSchedules]
+    newSchedules[editingSchedule].name = editingName
+    setSavedSchedules(newSchedules)
+    localStorage.setItem('terptrack-schedules', JSON.stringify(newSchedules))
     setEditingSchedule(null)
-    setEditingName('')
-  }
-
-  const cancelRename = () => {
-    setEditingSchedule(null)
-    setEditingName('')
   }
 
   const analyzeSchedule = async () => {
     if (schedule.length === 0) return
     
     setLoading(true)
-    setError('')
     
     try {
       const response = await fetch('/api/analyze-schedule', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courses: schedule })
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courses: schedule }),
       })
       
       if (!response.ok) {
-        throw new Error(`Failed to analyze schedule: ${response.status}`)
+        throw new Error('Failed to analyze schedule')
       }
       
       const data = await response.json()
@@ -238,309 +214,236 @@ export default function Home() {
   }
 
   return (
-    <ErrorBoundary>
-      <AuthWrapper>
-        <div className="min-h-screen p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-red-600 mb-2">
-              TerpTracker
-            </h1>
-            <p className="text-xl text-gray-700 mb-2">
-              How Terrapin tough is your schedule?
-            </p>
-            <p className="text-sm text-gray-500">
-              Real data from PlanetTerp • Built for Terps, by Terps
-            </p>
-            {user && (
-              <div className="mt-4 text-sm text-gray-600">
-                Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}!
-              </div>
-            )}
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100">
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-red-600 mb-2">TerpTracker</h1>
+          <p className="text-gray-600">UMD Schedule Analyzer</p>
+          {user && (
+            <p className="text-sm text-gray-500 mt-2">Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}!</p>
+          )}
+        </div>
 
-          {/* Navigation Tabs */}
-          <div className="flex space-x-1 mb-6 bg-gray-100 rounded-lg p-1">
+        {/* Tab Navigation */}
+        <div className="flex justify-center mb-6">
+          <div className="bg-white rounded-lg p-1 shadow-lg">
             <button
               onClick={() => setActiveTab('schedule')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-md transition-colors ${
                 activeTab === 'schedule'
-                  ? 'bg-white text-red-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? 'bg-red-600 text-white'
+                  : 'text-gray-600 hover:text-red-600'
               }`}
             >
               Schedule Builder
             </button>
             <button
               onClick={() => setActiveTab('classmates')}
-              className={`flex-1 py-2 px-4 rounded-md font-medium transition-colors ${
+              className={`px-4 py-2 rounded-md transition-colors ${
                 activeTab === 'classmates'
-                  ? 'bg-white text-red-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+                  ? 'bg-red-600 text-white'
+                  : 'text-gray-600 hover:text-red-600'
               }`}
             >
               Find Classmates
             </button>
           </div>
+        </div>
 
-          {/* Schedule Builder Tab */}
-          {activeTab === 'schedule' && (
-            <>
-              {/* Saved Schedules */}
-              {savedSchedules.length > 0 && (
-                <div className="glass-effect rounded-xl shadow-lg p-6 mb-4">
-                  <h2 className="text-lg font-semibold mb-3">Saved Schedules</h2>
-                  <div className="space-y-2">
-                    {savedSchedules.map((saved, idx) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        {editingSchedule === idx ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <input
-                              type="text"
-                              value={editingName}
-                              onChange={(e) => setEditingName(e.target.value)}
-                              onKeyPress={(e) => e.key === 'Enter' && saveRename(idx)}
-                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                              autoFocus
-                            />
-                            <button
-                              onClick={() => saveRename(idx)}
-                              className="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={cancelRename}
-                              className="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => loadSchedule(saved)}
-                              className="flex-1 text-left hover:bg-gray-100 p-2 rounded"
-                            >
-                              <span className="font-medium">{saved.name}</span>
-                              <span className="text-gray-500 ml-2">({saved.courses.length} courses)</span>
-                            </button>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => startRename(idx, saved.name)}
-                                className="px-2 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
-                                title="Rename"
-                              >
-                                Edit
-                              </button>
-                              <button
-                                onClick={() => deleteSchedule(idx)}
-                                className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600"
-                                title="Delete"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </>
-                        )}
+        {activeTab === 'schedule' ? (
+          <div className="max-w-4xl mx-auto">
+            {/* Course Input */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Add Course</h2>
+              <div className="flex gap-4">
+                <input
+                  type="text"
+                  value={courseCode}
+                  onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
+                  placeholder="Enter course code (e.g., CMSC131)"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-red-500"
+                />
+                <button
+                  onClick={addCourse}
+                  disabled={!courseCode || loading}
+                  className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <LoadingSpinner /> : 'Add Course'}
+                </button>
+              </div>
+              {error && <p className="text-red-600 mt-2">{error}</p>}
+            </div>
+
+            {/* Current Schedule */}
+            {schedule.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Current Schedule</h2>
+                <div className="space-y-3">
+                  {schedule.map((course) => (
+                    <div key={course.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <h3 className="font-semibold text-gray-800">{course.name}</h3>
+                        <p className="text-gray-600 text-sm">{course.title}</p>
+                        <p className="text-gray-500 text-xs">{course.credits} credits • GPA: {course.average_gpa}</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="glass-effect rounded-xl shadow-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold mb-4">Build Your Schedule</h2>
-                <div className="flex gap-3 mb-4">
-                  <input
-                    type="text"
-                    placeholder="CMSC131, MATH140, ENGL101..."
-                    value={courseCode}
-                    onChange={(e) => setCourseCode(e.target.value.toUpperCase())}
-                    onKeyPress={(e) => e.key === 'Enter' && addCourse()}
-                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-red-500 text-lg"
-                  />
-                  <button
-                    onClick={addCourse}
-                    disabled={loading}
-                    className="px-6 py-3 umd-red text-white rounded-lg disabled:opacity-50 font-medium transition-all"
-                  >
-                    {loading ? <LoadingSpinner size="sm" text="" /> : '+ Add'}
-                  </button>
+                      <button
+                        onClick={() => removeCourse(course.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
                 </div>
                 
-                {schedule.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="font-medium text-gray-700">Current Schedule</h3>
-                      <span className="text-sm bg-gray-100 px-2 py-1 rounded">
-                        {schedule.reduce((sum, c) => sum + c.credits, 0)} credits
-                      </span>
+                <div className="mt-4 flex gap-3">
+                  <button
+                    onClick={analyzeSchedule}
+                    disabled={loading}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {loading ? <LoadingSpinner /> : 'Analyze Schedule'}
+                  </button>
+                  <button
+                    onClick={saveSchedule}
+                    className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                  >
+                    Save Schedule
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Schedule Analysis */}
+            {analysis && (
+              <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Schedule Analysis</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Overall Score</h3>
+                    <div className="text-3xl font-bold text-blue-600">{analysis.survivabilityScore}%</div>
+                    <p className="text-gray-600">Chance of academic success</p>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-700 mb-2">Predicted GPA</h3>
+                    <div className="text-2xl font-bold text-green-600">
+                      {analysis.predictedGPA.min} - {analysis.predictedGPA.max}
                     </div>
-                    {schedule.map(course => (
-                      <div key={course.id} className="p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center justify-between mb-2">
-                          <div>
-                            <span className="font-medium">{course.name}</span>
-                            <span className="text-gray-600 ml-2">- {course.title}</span>
-                            <span className={`ml-2 px-2 py-1 rounded text-sm ${getDifficultyColor(course.average_gpa)}`}>
-                              GPA: {course.average_gpa > 0 ? course.average_gpa.toFixed(2) : 'No GPA data'}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => removeCourse(course.id)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                        
-                        {/* Section Number */}
-                        <div className="mt-2">
-                          <input
-                            type="text"
-                            placeholder="Section number (e.g., 0101, 0201)"
-                            value={course.section || ''}
-                            onChange={(e) => updateCourseSection(course.id, e.target.value)}
-                            className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                          />
-                        </div>
-                        
-                        {course.professors.length > 0 && (
-                          <div className="text-sm text-gray-600 mt-2">
-                            {course.professors.length} professor{course.professors.length !== 1 ? 's' : ''} available
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={analyzeSchedule}
-                        disabled={loading}
-                        className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
-                      >
-                        {loading ? <LoadingSpinner size="sm" text="" /> : 'Check if I\'ll survive'}
-                      </button>
-                      <button
-                        onClick={saveSchedule}
-                        className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={exportSchedule}
-                        className="px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-                      >
-                        Export
-                      </button>
+                    <p className="text-gray-600">Expected grade range</p>
+                  </div>
+                </div>
+                
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-700 mb-2">Difficulty Breakdown</h3>
+                  <div className="flex gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-green-600">{analysis.difficultyBreakdown.easy}</div>
+                      <div className="text-sm text-gray-600">Easy</div>
                     </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-yellow-600">{analysis.difficultyBreakdown.medium}</div>
+                      <div className="text-sm text-gray-600">Medium</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-red-600">{analysis.difficultyBreakdown.hard}</div>
+                      <div className="text-sm text-gray-600">Hard</div>
+                    </div>
+                  </div>
+                </div>
+
+                {analysis.warnings.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-yellow-700 mb-2">⚠️ Warnings</h3>
+                    <ul className="list-disc list-inside text-yellow-700">
+                      {analysis.warnings.map((warning, index) => (
+                        <li key={index}>{warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {analysis.recommendations.length > 0 && (
+                  <div className="mt-6">
+                    <h3 className="text-lg font-semibold text-blue-700 mb-2">💡 Recommendations</h3>
+                    <ul className="list-disc list-inside text-blue-700">
+                      {analysis.recommendations.map((rec, index) => (
+                        <li key={index}>{rec}</li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </div>
+            )}
 
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                  <p className="text-red-600">{error}</p>
+            {/* Saved Schedules */}
+            {savedSchedules.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">Saved Schedules</h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {savedSchedules.map((saved, index) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        {editingSchedule === index ? (
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            className="flex-1 px-2 py-1 border rounded"
+                            onKeyPress={(e) => e.key === 'Enter' && saveScheduleName()}
+                          />
+                        ) : (
+                          <h3 className="font-semibold text-gray-800">{saved.name}</h3>
+                        )}
+                      </div>
+                      <p className="text-gray-600 text-sm mb-3">{saved.courses.length} courses</p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadSchedule(index)}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        >
+                          Load
+                        </button>
+                        <button
+                          onClick={() => editScheduleName(index)}
+                          className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => deleteSchedule(index)}
+                          className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              {analysis && (
-                <div className="space-y-6">
-                  {/* Survivability Score */}
-                  <div className="bg-white rounded-lg shadow-md p-6">
-                    <h2 className="text-2xl font-bold mb-4 text-center">Your Schedule Report</h2>
-                    
-                    <div className="grid md:grid-cols-3 gap-4 mb-6">
-                      <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-                        <h3 className="font-semibold text-purple-800">Survival Rate</h3>
-                        <p className="text-3xl font-bold text-purple-600">
-                          {analysis.survivabilityScore}/10
-                        </p>
-                        <p className="text-sm text-purple-600">
-                          {analysis.survivabilityScore >= 8 ? 'You got this' : 
-                           analysis.survivabilityScore >= 6 ? 'Doable but tough' : 'RIP your GPA'}
-                        </p>
-                      </div>
-                      
-                      <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
-                        <h3 className="font-semibold text-blue-800">Predicted GPA</h3>
-                        <p className="text-2xl font-bold text-blue-600">
-                          {analysis.predictedGPA.min.toFixed(1)}-{analysis.predictedGPA.max.toFixed(1)}
-                        </p>
-                        <p className="text-sm text-blue-600">Realistic Range</p>
-                      </div>
-                      
-                      <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
-                        <h3 className="font-semibold text-green-800">Total Credits</h3>
-                        <p className="text-3xl font-bold text-green-600">{analysis.totalCredits}</p>
-                        <p className="text-sm text-green-600">
-                          {analysis.totalCredits >= 18 ? 'Overachiever' : 
-                           analysis.totalCredits >= 15 ? 'Standard load' : 'Part-time vibes'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Warnings */}
-                  {analysis.warnings.length > 0 && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                      <h3 className="text-lg font-semibold text-red-800 mb-3">Red Flags</h3>
-                      <ul className="space-y-2">
-                        {analysis.warnings.map((warning, idx) => (
-                          <li key={idx} className="text-red-700 flex items-start">
-                            <span className="mr-2">•</span>
-                            {warning}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Recommendations & Professor Insights */}
-                  {(analysis.recommendations.length > 0 || analysis.professorInsights?.length > 0) && (
-                    <div className="grid md:grid-cols-2 gap-4">
-                      {analysis.recommendations.length > 0 && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-                          <h3 className="text-lg font-semibold text-blue-800 mb-3">Pro Tips</h3>
-                          <ul className="space-y-2">
-                            {analysis.recommendations.map((rec, idx) => (
-                              <li key={idx} className="text-blue-700 flex items-start">
-                                <span className="mr-2">•</span>
-                                {rec}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                      
-                      {analysis.professorInsights && analysis.professorInsights.length > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                          <h3 className="text-lg font-semibold text-green-800 mb-3">Professor Intel</h3>
-                          <ul className="space-y-2">
-                            {analysis.professorInsights.map((insight, idx) => (
-                              <li key={idx} className="text-green-700 flex items-start">
-                                <span className="mr-2">•</span>
-                                {insight}
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-
-          {/* Classmate Finder Tab */}
-          {activeTab === 'classmates' && (
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto">
             <ClassmateFinder />
-          )}
-        </div>
+          </div>
+        )}
       </div>
-        </AuthWrapper>
-      </ErrorBoundary>
-    )
-  }
+    </div>
+  )
+}
+
+export default function Home() {
+  return (
+    <ErrorBoundary>
+      <AuthWrapper>
+        <ClientOnly fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+          </div>
+        }>
+          <HomeContent />
+        </ClientOnly>
+      </AuthWrapper>
+    </ErrorBoundary>
+  )
+}
