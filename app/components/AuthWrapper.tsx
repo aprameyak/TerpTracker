@@ -1,22 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-
-// Try to import Clerk components, but provide fallbacks if they fail
-let useUser: any = null
-let SignIn: any = null
-let SignUp: any = null
-let UserProfile: any = null
-
-try {
-  const clerk = require('@clerk/nextjs')
-  useUser = clerk.useUser
-  SignIn = clerk.SignIn
-  SignUp = clerk.SignUp
-  UserProfile = clerk.UserProfile
-} catch (error) {
-  console.warn('Clerk not available, using fallback mode')
-}
+import { useUser, SignIn, SignUp, UserProfile } from '@clerk/nextjs'
+import ClientOnly from './ClientOnly'
 
 interface UserData {
   universityVerified: boolean
@@ -30,39 +16,10 @@ interface UserData {
   }>
 }
 
-export default function AuthWrapper({ children }: { children: React.ReactNode }) {
-  // Check if Clerk is available
-  const isClerkAvailable = useUser && SignIn && SignUp && UserProfile
-  
-  if (!isClerkAvailable) {
-    // Fallback mode - render children directly without authentication
-    return <>{children}</>
-  }
-
-  const [user, setUser] = useState<any>(null)
-  const [isLoaded, setIsLoaded] = useState(false)
-  const [isSignedIn, setIsSignedIn] = useState(false)
+function AuthWrapperContent({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded, isSignedIn } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [showProfile, setShowProfile] = useState(false)
-
-  // Only call useUser on the client side
-  useEffect(() => {
-    if (useUser) {
-      try {
-        const { user: clerkUser, isLoaded: clerkLoaded, isSignedIn: clerkSignedIn } = useUser()
-        setUser(clerkUser)
-        setIsLoaded(clerkLoaded)
-        setIsSignedIn(clerkSignedIn)
-      } catch (error) {
-        console.warn('Clerk not available:', error)
-        setIsLoaded(true)
-        setIsSignedIn(false)
-      }
-    } else {
-      setIsLoaded(true)
-      setIsSignedIn(false)
-    }
-  }, [])
 
   useEffect(() => {
     if (isSignedIn && user) {
@@ -240,4 +197,16 @@ export default function AuthWrapper({ children }: { children: React.ReactNode })
   }
 
   return <>{children}</>
+}
+
+export default function AuthWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <ClientOnly fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-red-600"></div>
+      </div>
+    }>
+      <AuthWrapperContent>{children}</AuthWrapperContent>
+    </ClientOnly>
+  )
 }
