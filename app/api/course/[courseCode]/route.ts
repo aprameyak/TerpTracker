@@ -37,12 +37,10 @@ function extractTags(reviews: any[]): string[] {
   return tags
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { courseCode: string } }
-) {
+export async function GET(request: NextRequest, props: { params: Promise<{ courseCode: string }> }) {
+  const params = await props.params;
   const { courseCode } = params
-  
+
   try {
     // Fetch course data from PlanetTerp API
     const courseResponse = await fetch(`https://api.planetterp.com/v1/course?name=${courseCode}`)
