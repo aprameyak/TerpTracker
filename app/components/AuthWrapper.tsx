@@ -20,6 +20,7 @@ function AuthWrapperContent({ children }: { children: React.ReactNode }) {
   const { user, isLoaded, isSignedIn } = useUser()
   const [userData, setUserData] = useState<UserData | null>(null)
   const [showProfile, setShowProfile] = useState(false)
+  const [showSignUp, setShowSignUp] = useState(false)
 
   useEffect(() => {
     if (isSignedIn && user) {
@@ -53,8 +54,6 @@ function AuthWrapperContent({ children }: { children: React.ReactNode }) {
   }
 
   if (!isSignedIn) {
-    const [showSignUp, setShowSignUp] = useState(false)
-    
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-4">
         <div className="max-w-md mx-auto mt-20">
