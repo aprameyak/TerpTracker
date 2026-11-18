@@ -28,4 +28,4 @@
 
 ## Deployment
 
-Visit the live site at [https://terp-tracker.vercel.app](https://terp-tracker.vercel.app)
+Visit the live site at [https://terp-tracker.aprameyak.workers.dev](https://terp-tracker.aprameyak.workers.dev)

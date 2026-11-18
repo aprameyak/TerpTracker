@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: 'https://terptrack.vercel.app',
+      url: 'https://terp-tracker.aprameyak.workers.dev',
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 1,
