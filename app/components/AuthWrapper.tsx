@@ -55,7 +55,7 @@ function AuthWrapperContent({ children }: { children: React.ReactNode }) {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-4">
+      <div className="min-h-screen p-4 bg-red-50">
         <div className="max-w-md mx-auto mt-20">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-red-600 mb-2">TerpTracker</h1>
@@ -99,7 +99,7 @@ function AuthWrapperContent({ children }: { children: React.ReactNode }) {
   // Show profile setup if user hasn't completed verification
   if (userData && !userData.universityVerified) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 p-4">
+      <div className="min-h-screen p-4 bg-red-50">
         <div className="max-w-2xl mx-auto mt-10">
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h2 className="text-2xl font-bold text-center mb-6">Complete Your Profile</h2>
